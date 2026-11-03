@@ -15,7 +15,7 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python -m reflex run --env prod --frontend-port $PORT --backend-port 8000 --backend-host 127.0.0.1
+    startCommand: python -m reflex run --env prod --frontend-port $PORT --backend-port $PORT --backend-host 0.0.0.0
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
