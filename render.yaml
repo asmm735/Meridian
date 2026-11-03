@@ -14,8 +14,8 @@ services:
     name: meridian
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt && python -m reflex init && npm ci --prefix .web
-    startCommand: python -m reflex run --env prod --frontend-port $PORT --backend-port $PORT --backend-host 0.0.0.0
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m reflex init && npm ci --prefix .web && python -m reflex run --env prod --frontend-port $PORT --backend-port $PORT --backend-host 0.0.0.0
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
