@@ -21,4 +21,5 @@ node_modules/
 dist/
 .test-browsers/
 .test-data/
+.runtime/
 test-results/
