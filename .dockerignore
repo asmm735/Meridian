@@ -1,0 +1,16 @@
+.git
+.venv
+.venv-*
+.runtime
+.states
+.web
+.meridian
+.test-data
+.test-browsers
+.pytest_cache
+__pycache__
+*.pyc
+*.log
+test-results
+uploaded_files
+frontend.zip
