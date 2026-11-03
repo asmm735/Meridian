@@ -11,7 +11,7 @@ services:
         value: 3.11.9
 
   - type: web
-    name: meridian
+    name: meridian-frontend
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile
