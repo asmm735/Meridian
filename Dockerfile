@@ -14,6 +14,6 @@ RUN python3 -m pip install --no-cache-dir --break-system-packages -r requirement
 
 COPY . .
 RUN python3 -m reflex init \
-    && npm ci --prefix .web
+    && npm install --prefix .web --no-audit --no-fund
 
 CMD ["sh", "-c", "python3 -m reflex run --env prod --frontend-port ${PORT:-3000} --backend-port ${PORT:-3000} --backend-host 0.0.0.0"]
