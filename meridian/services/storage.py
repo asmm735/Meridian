@@ -103,7 +103,13 @@ def authenticate(email, password, register=False, name=''):
                 _execute(db, 'INSERT INTO users(email,password,profile) VALUES(?,?,?)',
                            (email, HASHER.hash(password), json.dumps({'email': email, 'full_name': name.strip()})))
             except sqlite3.IntegrityError:
-                raise ValueError('Unable to register this email. Try signing in.') from None
+                raise ValueError('This email already exists. Sign in instead.') from None
+            except Exception as exc:
+                if _postgres_url():
+                    import psycopg.errors
+                    if isinstance(exc, psycopg.errors.UniqueViolation):
+                        raise ValueError('This email already exists. Sign in instead.') from None
+                raise
         row = _execute(db, 'SELECT * FROM users WHERE email=?', (email,)).fetchone()
         try:
             HASHER.verify(row['password'] if row else HASHER.hash(secrets.token_hex(16)), password)
