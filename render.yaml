@@ -26,3 +26,5 @@ services:
           envVarKey: RENDER_EXTERNAL_URL
       - key: MERIDIAN_SECURE_COOKIE
         value: "1"
+      - key: MERIDIAN_DATABASE_URL
+        sync: false

@@ -19,8 +19,10 @@ the teammate's branch; this document describes the delivered application.
   new editorial chapter section without changing the existing opening sequence.
 - Split-screen registration/login, show/hide password, email/password validation,
   loading/errors, logout, protected pages, 24-hour opaque sessions and server-side
-  per-account SQLite persistence. Argon2id password hashes; hashed session tokens;
-  persistent login throttling. No plaintext credentials or demonstration login.
+  per-account persistence. Production uses Supabase PostgreSQL through
+  `MERIDIAN_DATABASE_URL`; local development falls back to SQLite. Argon2id password
+  hashes; hashed session tokens; persistent login throttling. No plaintext credentials
+  or demonstration login.
 - Dashboard showing the saved name, goals, completion, regions and last results.
 - Original profile fields plus board, degree level, calling code, residence,
   internship details, funding choices, accommodation and commute preferences.
@@ -64,8 +66,8 @@ because their original `agent3` module and serialization environment are absent.
 Agent 3 scores are relevance rankings, not admission probabilities; missing
 admission estimates remain unavailable.
 
-Documents are uploaded directly to the authenticated frontend's private SQLite-backed
-storage. TXT, DOCX and PDF files receive a bounded text preview and a processed status;
+Documents are uploaded directly to the authenticated frontend's private database-backed
+metadata storage. TXT, DOCX and PDF files receive a bounded text preview and a processed status;
 image files are retained but report that OCR is unavailable. Documents are not sent to
 the analysis API or used by prediction/matching. There is no email delivery/reset
 provider, so forgot-password is not offered. Regions, funding and commute preferences
@@ -103,9 +105,11 @@ then select Run / retry analysis. API docs: http://127.0.0.1:8001/docs.
 Reflex initializes its frontend automatically on first run.
 
 `.env.example` documents settings; set them in PowerShell (it is not automatically
-loaded). SQLite is stored under `.meridian/`, excluded from Git. Back this directory
-up if retaining accounts. Configure `MERIDIAN_DATA_DIR` for a persistent deployment.
-Use HTTPS and `MERIDIAN_SECURE_COOKIE=1` when deployed. Reflex client-storage cookies
+loaded). For Render, add `MERIDIAN_DATABASE_URL` to the **meridian-frontend** service
+using the Supabase session-pooler PostgreSQL URI; adding it only to `meridian-api`
+does not persist accounts because account storage runs in the frontend process.
+SQLite is stored under `.meridian/`, excluded from Git, and is suitable only for local
+development/tests. Use HTTPS and `MERIDIAN_SECURE_COOKIE=1` when deployed. Reflex client-storage cookies
 cannot be HttpOnly; this implementation uses SameSite=Strict, short-lived revocable
 opaque tokens, and server-side authorization on persistence/report/analysis events.
 For public production deployment, a vetted identity provider or an HttpOnly-cookie
