@@ -2,6 +2,7 @@
 import os
 import math
 import logging
+import asyncio
 import httpx
 
 
@@ -64,19 +65,29 @@ def agent1_payload(profile):
 
 async def request(path, payload):
     base = os.environ.get('MERIDIAN_API_URL', 'http://127.0.0.1:8001').rstrip('/')
-    try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(45, connect=5), trust_env=False) as client:
-            response = await client.post(base+path, json=payload)
-        if response.status_code >= 400:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(60, connect=10), trust_env=False) as client:
+        for attempt in range(3):
             try:
-                body = response.json()
-                detail = body.get('detail', 'Request failed') if isinstance(body, dict) else 'Request failed'
-            except ValueError:
-                detail = 'Request failed'
-            if response.status_code == 401:
-                detail = 'The analysis service rejected authorization. Check the service configuration.'
-            error = AgentUnavailable if response.status_code in (404, 503) else ValueError
-            raise error(f'Analysis API ({response.status_code}): {detail}')
+                response = await client.post(base+path, json=payload)
+            except (httpx.ConnectError, httpx.ReadTimeout, httpx.RemoteProtocolError):
+                if attempt == 2:
+                    raise ValueError('Analysis API did not respond. Render may still be waking up; please retry.') from None
+                await asyncio.sleep(2 * (attempt + 1))
+                continue
+            if response.status_code in (502, 503) and attempt < 2:
+                await asyncio.sleep(2 * (attempt + 1))
+                continue
+            if response.status_code >= 400:
+                try:
+                    body = response.json()
+                    detail = body.get('detail', 'Request failed') if isinstance(body, dict) else 'Request failed'
+                except ValueError:
+                    detail = 'Request failed'
+                if response.status_code == 401:
+                    detail = 'The analysis service rejected authorization. Check the service configuration.'
+                error = AgentUnavailable if response.status_code in (404, 503) else ValueError
+                raise error(f'Analysis API ({response.status_code}): {detail}')
+            break
         try:
             result = response.json()
         except ValueError:
@@ -149,7 +160,3 @@ async def request(path, payload):
                             or not 0 <= recommendation['match_score'] <= 1):
                         raise ValueError('The scholarship API returned invalid recommendation details.')
         return result
-    except httpx.TimeoutException:
-        raise ValueError('Analysis timed out. Retry when the backend is ready.') from None
-    except httpx.HTTPError:
-        raise AgentUnavailable('Cannot reach the analysis API. Check MERIDIAN_API_URL and start the backend, then retry.') from None
