@@ -70,7 +70,7 @@ def predict_candidate_tier(payload):
     model_dir = os.path.join(Config.MODEL_DIR)
     feature_path = os.path.join(model_dir, "feature_columns.joblib")
     model_path = os.path.join(model_dir, "rf_tier_model.joblib")
-    if not os.path.isfile(feature_path) or not os.path.isfile(model_path):
+    if not os.path.isfile(model_path):
         raise FileNotFoundError("Agent 1 candidate-tier model artifacts are missing.")
 
     try:
@@ -99,7 +99,13 @@ def predict_candidate_tier(payload):
         "major": str(payload.get("major") or "NA"),
         "work_industry": str(payload.get("work_industry") or "NA"),
     })
-    columns = joblib.load(feature_path)
+    if os.path.isfile(feature_path):
+        columns = joblib.load(feature_path)
+    else:
+        model = joblib.load(model_path)
+        columns = getattr(model, "feature_names_in_", None)
+        if columns is None:
+            raise FileNotFoundError("Agent 1 feature columns are unavailable.")
     encoded = pd.get_dummies(pd.DataFrame([row]), columns=["track", "admission_status", "major", "work_industry"])
     encoded = encoded.reindex(columns=columns, fill_value=0)
     model = joblib.load(model_path)
