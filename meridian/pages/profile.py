@@ -16,13 +16,13 @@ def _field(f: dict):
     key, kind = f["key"], f["kind"]
     if key == "regions":
         control = rx.el.div(
-            rx.el.input(value=State.region_query, on_change=State.set_region_query, list="region-options", class_name="input", id=f"f-{key}", placeholder="Search and choose a state or region"),
+            rx.el.input(default_value=State.region_query, on_change=State.set_region_query, list="region-options", class_name="input", id=f"f-{key}", placeholder="Search and choose a state or region"),
             rx.el.datalist(*[rx.el.option(value=v) for v in REGIONS], id="region-options"),
             rx.el.button("Add region", on_click=State.add_region, type="button", class_name="btn-ghost"),
             rx.el.button("Clear all regions", on_click=State.clear_regions, type="button", class_name="btn-ghost", disabled=State.regions.length() == 0),
             rx.el.div(rx.foreach(State.regions, lambda r: rx.el.button(r, " ×", on_click=State.remove_region(r), type="button", aria_label="Remove " + r)), class_name="region-chips"))
     elif key in ("nationality", "country"):
-        control = rx.el.div(rx.el.input(value=State.profile[key], on_change=_on_change(key), list=f"options-{key}", id=f"f-{key}", class_name="input", placeholder="Search countries"),
+        control = rx.el.div(rx.el.input(default_value=State.profile[key], on_change=_on_change(key), list=f"options-{key}", id=f"f-{key}", class_name="input", placeholder="Search countries"),
             rx.el.datalist(*[rx.el.option(value=v) for v in COUNTRIES], id=f"options-{key}"))
     elif kind == "select":
         opts = list(f["options"])
@@ -30,18 +30,18 @@ def _field(f: dict):
             rx.el.option("Choose…", value=""),
             *[rx.el.option(o, value=o) for o in opts],
 
-            value=State.profile[key],
+            default_value=State.profile[key],
             on_change=_on_change(key),
             class_name="input", id=f"f-{key}",
         )
     elif kind == "textarea":
         control = rx.el.textarea(
-            value=State.profile[key], placeholder=f["placeholder"],
+            default_value=State.profile[key], placeholder=f["placeholder"],
             on_change=_on_change(key), class_name="input", id=f"f-{key}",
         )
     else:
         control = rx.el.input(
-            value=State.profile[key], placeholder=f["placeholder"], type=kind,
+            default_value=State.profile[key], placeholder=f["placeholder"], type=kind,
             on_change=_on_change(key), class_name="input", id=f"f-{key}",
         )
     field = rx.el.div(
