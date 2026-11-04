@@ -33,9 +33,24 @@ def match_universities(payload):
         if academic_score >= university["gpa"] - 0.2:
             matches.append(university)
 
+    notice = ""
+    if not matches:
+        candidates = [
+            university for university in dataset
+            if preferred_country.lower() == "all"
+            or university["country"].lower() == preferred_country.lower()
+        ]
+        candidates.sort(key=lambda university: abs(academic_score - university["gpa"]))
+        matches = candidates[:2]
+        notice = (
+            "No universities met the selected tier and GPA threshold. "
+            "Showing the closest catalog options so program and financial analysis can continue."
+        )
+
     return {
         "tier": target_tier,
         "country": preferred_country,
         "matched_universities": matches,
         "count": len(matches),
+        **({"notice": notice} if notice else {}),
     }
