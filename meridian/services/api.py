@@ -3,11 +3,17 @@ import os
 import math
 import logging
 import asyncio
+import time
 import httpx
 
 
 class AgentUnavailable(ValueError):
     """Service or required artifacts are unavailable, rather than a bad analysis."""
+
+
+_REQUEST_GATE = asyncio.Lock()
+_LAST_REQUEST_AT = 0.0
+_MIN_REQUEST_INTERVAL = 1.5
 
 
 def number(profile, key, low, high):
@@ -64,25 +70,23 @@ def agent1_payload(profile):
 
 
 async def request(path, payload):
+    global _LAST_REQUEST_AT
     base = os.environ.get('MERIDIAN_API_URL', 'http://127.0.0.1:8001').rstrip('/')
     async with httpx.AsyncClient(timeout=httpx.Timeout(60, connect=10), trust_env=False) as client:
-        for attempt in range(3):
+        async with _REQUEST_GATE:
+            elapsed = time.monotonic() - _LAST_REQUEST_AT
+            if elapsed < _MIN_REQUEST_INTERVAL:
+                await asyncio.sleep(_MIN_REQUEST_INTERVAL - elapsed)
+            _LAST_REQUEST_AT = time.monotonic()
             try:
                 response = await client.post(base+path, json=payload)
             except (httpx.ConnectError, httpx.ReadTimeout, httpx.RemoteProtocolError):
-                if attempt == 2:
-                    raise ValueError('Analysis API did not respond. Render may still be waking up; please retry.') from None
-                await asyncio.sleep(2 * (attempt + 1))
-                continue
-            if response.status_code in (429, 502, 503) and attempt < 2:
-                retry_after = response.headers.get("retry-after", "")
-                try:
-                    delay = min(max(float(retry_after), 1.0), 30.0)
-                except ValueError:
-                    delay = 3.0 * (attempt + 1) if response.status_code == 429 else 2.0 * (attempt + 1)
-                await asyncio.sleep(delay)
-                continue
+                raise ValueError('Analysis API did not respond. Render may still be waking up; please retry.') from None
             if response.status_code >= 400:
+                if response.status_code == 429:
+                    raise AgentUnavailable(
+                        'The analysis service is busy. Please wait 30 seconds before running analysis again.'
+                    )
                 try:
                     body = response.json()
                     detail = body.get('detail', 'Request failed') if isinstance(body, dict) else 'Request failed'
@@ -90,11 +94,8 @@ async def request(path, payload):
                     detail = 'Request failed'
                 if response.status_code == 401:
                     detail = 'The analysis service rejected authorization. Check the service configuration.'
-                if response.status_code == 429:
-                    detail = 'The analysis service is temporarily rate-limited. Please wait a moment and retry.'
-                error = AgentUnavailable if response.status_code in (404, 429, 503) else ValueError
+                error = AgentUnavailable if response.status_code in (404, 503) else ValueError
                 raise error(f'Analysis API ({response.status_code}): {detail}')
-            break
         try:
             result = response.json()
         except ValueError:
