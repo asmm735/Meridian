@@ -51,6 +51,30 @@ class ScholarshipResult(TypedDict):
     eligibility_review: list[ScholarshipReview]
 
 
+def _friendly_review_reason(reason: str) -> str:
+    messages = {
+        'unknown: GPA or GPA scale': 'Add your GPA and grading scale to check this requirement.',
+        'unknown: deadline policy': 'The current application timing is not published; confirm it with the provider.',
+        'nonannual or missing award period': 'The award amount or payment period is not clearly published.',
+        'unknown: nationality': 'Add your nationality to check this requirement.',
+        'unknown: field equivalence requires review': 'Your field needs confirmation against the provider’s eligibility wording.',
+        'unknown: degree': 'Add your intended degree level to check this requirement.',
+        'currency mismatch': 'The award currency differs from the estimated study-cost currency.',
+        'unknown coverage basis or award amount': 'The provider has not clearly published the award amount or coverage basis.',
+        'nationality': 'This award is limited to different nationalities.',
+        'field equivalence requires review': 'This award’s field requirement does not clearly match your field.',
+        'degree': 'This award is for a different degree level.',
+        'expired deadline': 'The listed deadline has passed.',
+    }
+    return messages.get(reason, reason.removeprefix('unknown: ').capitalize())
+
+
+def _friendly_match(status: str) -> str:
+    return {'eligible': 'Potential match', 'unknown': 'Needs confirmation', 'ineligible': 'Not a match'}.get(
+        status, 'Needs confirmation'
+    )
+
+
 def agent7_report_text(results):
     result = results.get('extracurricular')
     if not isinstance(result, dict) or not AGENT7_RESULT_KEYS.issubset(result):
@@ -469,7 +493,20 @@ class State(rx.State):
     @rx.var
     def program_results(self) -> list[dict[str, Any]]:
         result = self.results.get('program', {})
-        return result.get('programs', []) if isinstance(result, dict) else []
+        rows = result.get('programs', []) if isinstance(result, dict) else []
+        formatted = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            item = dict(row)
+            for key in ('specialization_fit_score', 'match_score'):
+                value = item.get(key)
+                if isinstance(value, (int, float)):
+                    item[key] = f'{float(value) * 100:.0f}%'
+            item['duration'] = item.get('duration') or 'Duration not listed'
+            item['mode'] = item.get('mode') or 'Study format not listed'
+            formatted.append(item)
+        return formatted
 
     @rx.var
     def financial_available(self) -> bool:
@@ -480,8 +517,7 @@ class State(rx.State):
     def financial_results(self) -> list[dict[str, Any]]:
         result = self.results.get('financial', {})
         rows = result.get('finance', []) if isinstance(result, dict) else []
-        return [{**row, 'currency': row.get('currency') or 'Currency unspecified',
-                 'source': row.get('source') or row.get('model_artifact') or 'Source not supplied'}
+        return [{**row, 'currency': row.get('currency') or 'Currency unspecified'}
                 for row in rows if isinstance(row, dict)]
 
     @rx.var
@@ -515,8 +551,23 @@ class State(rx.State):
                 'program_name': str(item.get('program_name', '')),
                 'currency': str(item.get('currency', '')),
                 'funding_gap': item.get('funding_gap'),
-                'recommendations': item.get('recommendations', []),
-                'eligibility_review': item.get('eligibility_review', []),
+                'recommendations': [
+                    {**recommendation, 'eligibility_match': 'Potential match'}
+                    for recommendation in item.get('recommendations', [])
+                    if isinstance(recommendation, dict)
+                ],
+                'eligibility_review': [
+                    {
+                        **review,
+                        'eligibility_match': _friendly_match(str(review.get('eligibility_match', ''))),
+                        'reasons': [
+                            _friendly_review_reason(str(reason))
+                            for reason in review.get('reasons', [])
+                        ],
+                    }
+                    for review in item.get('eligibility_review', [])
+                    if isinstance(review, dict)
+                ],
             }
             for item in result.get('scholarships', [])
             if isinstance(item, dict)

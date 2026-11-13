@@ -151,12 +151,12 @@ def results_page():
             rx.el.div(rx.el.p(State.prediction_text, class_name="lede"), rx.cond(State.profile_analysis_available, rx.el.p(State.prediction_confidence, class_name="notice"), rx.fragment())),
         )),
         _sheet("02", "University matches", "Possibilities to explore", rx.el.div(
-            rx.el.p("These are university results returned by the backend matcher. Catalog tiers and relevance scores are not admission chances.", class_name="notice"),
+            rx.el.p("These schools are suggestions based on your profile. Catalog tiers and relevance scores are not admission chances.", class_name="notice"),
             rx.cond(State.recommendations.length()>0, rx.el.div(rx.foreach(State.recommendations, card), class_name="result-list"), rx.el.p(State.university_summary, class_name="lede")))),
         _sheet("03", "Program rankings", "Programs ranked for your shortlist", rx.cond(
             State.program_results.length() > 0,
             rx.el.div(
-                rx.el.p("Agent 3 program-fit rankings use the Agent 2 university shortlist. Scores are relevance rankings, not admission probabilities.", class_name="notice"),
+                rx.el.p("Programs are ranked by how closely they match your profile. This is not an admission prediction.", class_name="notice"),
                 rx.el.div(rx.foreach(State.program_results, program_card), class_name="result-list"),
             ),
             rx.el.p(State.program_summary, class_name="lede"),
@@ -177,8 +177,8 @@ def results_page():
             label("Evidence and limitations"),
             rx.el.h2("What to verify before applying", class_name="h2"),
             rx.el.p(
-                "The seven connected agents show verified results when their artifacts and source data cover your profile. "
-                "Rows without exact verified financial coverage and unavailable admission models remain explicitly marked rather than inferred.",
+                "Some results may need confirmation when your profile or a provider listing is incomplete. "
+                "Check the linked university or scholarship information before making an application decision.",
                 class_name="body",
             ),
             class_name="sheet sheet-pad",

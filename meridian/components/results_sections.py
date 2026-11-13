@@ -59,7 +59,7 @@ def live_programs_table():
             rx.el.td(row["mode"]),
         ))
     return rx.el.div(
-        rx.el.p("Agent 3 program-fit rankings from the saved Agent 2 shortlist. Scores are relevance rankings, not admission probabilities.", class_name="notice"),
+        rx.el.p("Programs are ranked by how closely they match your profile. This is not an admission prediction.", class_name="notice"),
         rx.el.table(rx.el.thead(head), rx.el.tbody(body), class_name="plain"),
         style={"overflowX": "auto"},
     )
@@ -88,7 +88,7 @@ def financial():
 def live_financial():
     return rx.el.div(
         rx.el.p(
-            "Agent 4 uses the saved model where its complete feature schema is available; published source rows are shown directly and labeled.",
+            "Estimated costs are based on the available university and program information. Confirm fees with the university before applying.",
             class_name="notice",
         ),
         rx.foreach(
@@ -103,7 +103,6 @@ def live_financial():
                 rx.el.p("Tuition: ", row["currency"], " ", row["tuition_annual"], class_name="mono"),
                 rx.el.p("Living: ", row["currency"], " ", row["living_cost_annual"], class_name="mono"),
                 rx.el.p("Total annual cost: ", row["currency"], " ", row["total_cost"], class_name="num-key"),
-                rx.el.p("Source: ", row["source"], " · Data quality: ", row["cost_data_quality"], class_name="mono"),
                 class_name="sheet sheet-pad stacked", style={"marginTop": "14px"},
             ),
         ),
@@ -184,7 +183,7 @@ def live_scholarships():
                 rx.fragment(),
             ),
             rx.el.p(
-                "Agent 5 uses verified catalog fields and rule-based eligibility. Match scores are retrieval scores, not award probabilities.",
+                "Items marked “Needs confirmation” need one or more details from you or the provider before you apply.",
                 class_name="notice", style={"marginTop": "14px"},
             ),
             class_name="sheet sheet-pad stacked",
@@ -192,7 +191,7 @@ def live_scholarships():
 
     return rx.el.div(
         rx.el.p(
-            "Scholarship recommendations are based on the supplied catalog, explicit eligibility fields, and Agent 4 annual costs. Confirm current rules with each provider.",
+            "Potential awards are selected from available provider information. Confirm eligibility, amount, and deadline with each provider.",
             class_name="notice",
         ),
         rx.foreach(State.scholarship_results, funding_item),
@@ -213,10 +212,10 @@ def career():
 def live_career():
     return rx.el.div(
         rx.el.p(
-            "Agent 6 combines a model-backed earnings estimate with transparent rule-based career alignment.",
+            "These paths are suggestions based on your profile and are not guarantees of employment or salary.",
             class_name="notice",
         ),
-        rx.el.p("Annual earnings model estimate: ", State.career_earnings_estimate, class_name="body"),
+        rx.el.p("Estimated annual earnings: ", State.career_earnings_estimate, class_name="body"),
         rx.el.h3("Recommended paths", class_name="h3"),
         rx.foreach(State.career_paths, lambda row: rx.el.div(
             rx.el.div(
@@ -224,12 +223,11 @@ def live_career():
                 rx.el.span(row["alignment_score"], "% aligned", class_name="mono ink"),
                 class_name="row between wrap", style={"gap": "8px", "marginBottom": "8px"},
             ),
-            rx.el.p("Required skills: ", row["required_skills"].to_string(), class_name="body"),
-            rx.el.p("Skill gaps: ", row["skill_gaps"].to_string(), class_name="body"),
+            rx.el.p("Skills to build: ", row["skill_gaps"].to_string(), class_name="body"),
             class_name="sheet sheet-pad stacked", style={"marginTop": "14px"},
         )),
         rx.el.p(
-            "The available earnings artifact produced a model estimate; it is not an observed salary or employment outcome.",
+            "Salary figures are estimates, not observed outcomes.",
             class_name="notice", style={"marginTop": "18px"},
         ),
     )
@@ -261,21 +259,15 @@ def live_extracurricular():
             style={"marginBottom": "12px"},
         ),
         rx.el.div(
-            rx.el.span("P(Strong)", style={"fontWeight": 500}),
-            rx.el.span(State.agent7_probability, class_name="mono ink"),
-            class_name="row between",
-            style={"marginBottom": "12px"},
-        ),
-        rx.el.div(
             rx.el.span("Achievement archetype", style={"fontWeight": 500}),
             rx.el.span("Cluster ", State.agent7_archetype, class_name="mono ink"),
             class_name="row between",
             style={"marginBottom": "12px"},
         ),
         rx.el.p(
-            "Research evidence reported: ",
+            "Research experience reported: ",
             State.agent7_research_evidence,
-            ". P(Strong) is a synthetic strength-class probability, not an admission probability.",
+            ". This is a profile-strength indicator, not an admission probability.",
             class_name="notice",
         ),
     )
