@@ -311,7 +311,6 @@ class State(rx.State):
             self.message = 'Draft retained. Save changes or continue to documents when finished.'
             return
         try:
-            storage.user(self.session)
             self.field_errors = validation.profile_errors(self.profile)
             blocking = set(self.field_errors)
             if blocking:

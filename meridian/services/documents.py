@@ -112,7 +112,8 @@ def store(token, slot, name, data):
     name, suffix = validate(name, data)
     identifier = str(uuid.uuid4())
     with storage.connect() as db:
-        db.execute('BEGIN IMMEDIATE')
+        if not storage._postgres_url():
+            db.execute('BEGIN IMMEDIATE')
         account = storage.authorized(db, token)
         docs = json.loads(account['documents'])
         old = docs.get(slot+'_id')
@@ -124,7 +125,7 @@ def store(token, slot, name, data):
             docs.update({slot+'_id': identifier, slot+'_name': name, slot+'_type': suffix[1:].upper(),
                          slot+'_size': f'{len(data):,} bytes', slot+'_status': 'Text extracted' if not preview.startswith('No readable text') else 'Text unavailable',
                          slot+'_preview': preview})
-            db.execute("UPDATE users SET documents=?, results='{}' WHERE id=?", (json.dumps(docs), account['id']))
+            storage._execute(db, "UPDATE users SET documents=?, results='{}' WHERE id=?", (json.dumps(docs), account['id']))
             db.commit()
         except Exception:
             path.unlink(missing_ok=True)
@@ -149,12 +150,13 @@ def remove(token, slot):
     if slot not in SLOTS:
         raise ValueError('Unknown document slot.')
     with storage.connect() as db:
-        db.execute('BEGIN IMMEDIATE')
+        if not storage._postgres_url():
+            db.execute('BEGIN IMMEDIATE')
         account = storage.authorized(db, token)
         docs = json.loads(account['documents'])
         identifier = docs.get(slot+'_id')
         docs = {key: value for key, value in docs.items() if not key.startswith(slot+'_')}
-        db.execute("UPDATE users SET documents=?, results='{}' WHERE id=?", (json.dumps(docs), account['id']))
+        storage._execute(db, "UPDATE users SET documents=?, results='{}' WHERE id=?", (json.dumps(docs), account['id']))
         db.commit()
         if identifier:
             _path(account['id'], identifier).unlink(missing_ok=True)
