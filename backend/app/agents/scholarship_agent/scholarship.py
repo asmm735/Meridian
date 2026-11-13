@@ -15,6 +15,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 BASE = Path(__file__).resolve().parent / "trained_models_A5"
 CATALOG_PATH = BASE / "agent5_scholarship_catalog.joblib"
+CATALOG_CSV_PATH = BASE / "agent5_scholarship_catalog.csv"
 VECTORIZER_PATH = BASE / "agent5_tfidf_vectorizer.joblib"
 MATRIX_PATH = BASE / "agent5_tfidf_matrix.joblib"
 CONFIG_PATH = BASE / "agent5_config.joblib"
@@ -65,8 +66,12 @@ def _field(profile: dict[str, Any]) -> str:
 
 def _load_artifacts() -> tuple[pd.DataFrame, Any, Any, dict[str, Any]]:
     try:
-        catalog = joblib.load(CATALOG_PATH)
-    except (OSError, ValueError, EOFError, ImportError, AttributeError) as exc:
+        catalog = (
+            pd.read_csv(CATALOG_CSV_PATH, low_memory=False)
+            if CATALOG_CSV_PATH.is_file()
+            else joblib.load(CATALOG_PATH)
+        )
+    except (OSError, ValueError, EOFError, ImportError, AttributeError, TypeError) as exc:
         raise ScholarshipUnavailable("Agent 5 scholarship artifacts are unavailable.") from exc
     if not isinstance(catalog, pd.DataFrame):
         raise ScholarshipUnavailable("Agent 5 artifacts have an invalid schema.")
