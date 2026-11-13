@@ -73,6 +73,20 @@ def _source_features(program: dict, degree: str, columns: list[str]) -> dict | N
             & (source["program_name"].astype(str).str.strip() == program_name)
             & (source["program_level"].astype(str).str.strip() == level)
         ]
+        source_program_name = program_name
+        quality = "PUBLISHED_SOURCE"
+        if rows.empty:
+            program_family = program_name.split(" - ", 1)[0].strip()
+            related = source[
+                (source["university_name"].astype(str).str.strip() == university)
+                & (source["program_level"].astype(str).str.strip() == level)
+                & (source["program_name"].astype(str).str.strip().str.startswith(program_family + " - "))
+            ]
+            if len(related) != 1:
+                return None
+            rows = related
+            source_program_name = str(rows.iloc[0]["program_name"]).strip()
+            quality = "PUBLISHED_SOURCE_RELATED_PROGRAM"
         if rows.empty:
             return None
         row = rows.iloc[0]
@@ -84,6 +98,8 @@ def _source_features(program: dict, degree: str, columns: list[str]) -> dict | N
             "tuition_annual": _number(tuition, "tuition"),
             "living_cost_annual": _number(living, "living"),
             "source": source_path.name,
+            "cost_data_quality": quality,
+            "source_program_name": source_program_name,
         }
     missing = [column for column in RAW_REQUIRED if column not in source.columns]
     if missing:
@@ -147,9 +163,10 @@ def _estimate(program: dict, degree: str, model, columns: list[str]) -> dict:
             "living_cost_annual": round(living, 2),
             "total_cost": round(tuition + living, 2),
             "currency": "USD",
-            "cost_data_quality": "PUBLISHED_SOURCE",
+            "cost_data_quality": features.get("cost_data_quality", "PUBLISHED_SOURCE"),
             "explainability": None,
             "source": features["source"],
+            "source_program_name": features.get("source_program_name", program_name),
             "program_level": PROGRAM_LEVELS.get(degree.upper(), "Graduate / Master's"),
         }
     missing = [column for column in columns if column not in features]
@@ -213,7 +230,9 @@ def analyze_financial(payload: dict) -> dict:
     if has_model:
         notice_parts.append("Model-predicted rows use agent4_tuition_model.pkl.")
     if has_published:
-        notice_parts.append("Published-source rows are reported directly and are not model predictions.")
+        notice_parts.append(
+            "Published-source rows are reported directly; related-program matches are labeled in source_program_name."
+        )
     notice_parts.append("No missing institutional values are inferred.")
     return {
         "agent": "financial",
