@@ -96,6 +96,7 @@ class State(rx.State):
     _loaded_session: str = ''
     upload_states: dict[str, str] = {}
     upload_errors: dict[str, str] = {}
+    preview_slot: str = ''
 
     def _error(self, exc):
         if isinstance(exc, (ValueError, Agent7Unavailable)):
@@ -197,6 +198,7 @@ class State(rx.State):
         self._loaded_session = ''
         self.upload_states = {}
         self.upload_errors = {}
+        self.preview_slot = ''
         self.region_query = ''
         self.show_password = False
 
@@ -421,6 +423,10 @@ class State(rx.State):
             self.message = 'Document removed.'
         except Exception as exc:
             self.message = self._error(exc)
+
+    @rx.event
+    def toggle_preview(self, slot: str):
+        self.preview_slot = '' if self.preview_slot == slot else slot
 
     @rx.event
     def download_document(self, slot: str):

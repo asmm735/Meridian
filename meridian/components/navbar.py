@@ -2,6 +2,7 @@ import reflex as rx
 
 from .brand import brand
 from .common import start_button
+from ..state import State
 
 STEPS = ["Profile", "Documents", "Analysis", "Results", "Report"]
 

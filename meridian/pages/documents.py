@@ -36,7 +36,6 @@ def _slot(d: dict):
                 rx.el.span(State.docs[f"{slot}_status"], class_name="mono blue", style={"fontWeight": 600}),
                 class_name="row", style={"gap": "16px"},
             ),
-            rx.el.p(State.docs[f"{slot}_preview"], class_name="body", style={"marginTop": "12px", "fontSize": "13px"}),
             style={"minWidth": 0},
         ),
         class_name="doc-card",
@@ -50,6 +49,22 @@ def _slot(d: dict):
                     "text/plain": [".txt"], "image/*": [".png", ".jpg", ".jpeg"]},
             on_drop=_HANDLERS[slot](rx.upload_files(upload_id=uid)),
             class_name="upload-root",
+        ),
+        rx.cond(
+            State.uploaded_slots.contains(slot),
+            rx.el.div(
+                rx.el.button(
+                    rx.cond(State.preview_slot == slot, "Hide preview", "Preview text"),
+                    on_click=State.toggle_preview(slot), type="button", class_name="btn-ghost",
+                ),
+                rx.cond(
+                    State.preview_slot == slot,
+                    rx.el.p(State.docs[f"{slot}_preview"], class_name="body", style={"marginTop": "12px", "fontSize": "13px"}),
+                    rx.fragment(),
+                ),
+                class_name="stacked", style={"marginTop": "12px"},
+            ),
+            rx.fragment(),
         ),
         rx.el.p(State.upload_states.get(slot, ""), role="status", class_name="mono"),
         rx.cond(State.upload_errors.get(slot, "") != "", rx.el.p(State.upload_errors.get(slot, ""), " Choose the file again to retry.", role="alert", class_name="field-error"), rx.fragment()),
