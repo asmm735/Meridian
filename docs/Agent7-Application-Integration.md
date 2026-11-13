@@ -41,7 +41,7 @@ python -m venv .venv-agent7
 
 The app automatically selects `.venv-agent7`; `MERIDIAN_AGENT7_PYTHON` overrides it. If neither is available, the current interpreter must satisfy the pins. Start Meridian normally. No training runs during application startup or requests.
 
-The recovery pipeline is available, but the current checkout does not contain the four source artifacts it expects under `trained_models_A7`, so it cannot produce a verified bundle. Only after those original artifacts are restored should `scripts/prepare_agent7_bundle.py` be run in the Agent 7 runtime. It refuses to overwrite an existing bundle. `repair.py` delegates to this minimal recovery pipeline rather than rebuilding all models.
+The verified bundle is generated from the notebook's training cells in the pinned Agent 7 runtime and is checked into `trained_models/`. The recovery pipeline remains available for intentional regeneration, but it refuses to overwrite an existing bundle. `repair.py` delegates to this minimal recovery pipeline rather than rebuilding all models.
 
 ## Verification
 
