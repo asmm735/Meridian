@@ -74,8 +74,13 @@ async def request(path, payload):
                     raise ValueError('Analysis API did not respond. Render may still be waking up; please retry.') from None
                 await asyncio.sleep(2 * (attempt + 1))
                 continue
-            if response.status_code in (502, 503) and attempt < 2:
-                await asyncio.sleep(2 * (attempt + 1))
+            if response.status_code in (429, 502, 503) and attempt < 2:
+                retry_after = response.headers.get("retry-after", "")
+                try:
+                    delay = min(max(float(retry_after), 1.0), 30.0)
+                except ValueError:
+                    delay = 3.0 * (attempt + 1) if response.status_code == 429 else 2.0 * (attempt + 1)
+                await asyncio.sleep(delay)
                 continue
             if response.status_code >= 400:
                 try:
@@ -85,7 +90,9 @@ async def request(path, payload):
                     detail = 'Request failed'
                 if response.status_code == 401:
                     detail = 'The analysis service rejected authorization. Check the service configuration.'
-                error = AgentUnavailable if response.status_code in (404, 503) else ValueError
+                if response.status_code == 429:
+                    detail = 'The analysis service is temporarily rate-limited. Please wait a moment and retry.'
+                error = AgentUnavailable if response.status_code in (404, 429, 503) else ValueError
                 raise error(f'Analysis API ({response.status_code}): {detail}')
             break
         try:
