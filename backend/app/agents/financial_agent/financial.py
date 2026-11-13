@@ -82,11 +82,21 @@ def _source_features(program: dict, degree: str, columns: list[str]) -> dict | N
                 & (source["program_level"].astype(str).str.strip() == level)
                 & (source["program_name"].astype(str).str.strip().str.startswith(program_family + " - "))
             ]
-            if len(related) != 1:
+            if len(related) == 1:
+                rows = related
+                source_program_name = str(rows.iloc[0]["program_name"]).strip()
+                quality = "PUBLISHED_SOURCE_RELATED_PROGRAM"
+        if rows.empty and degree.upper() != "MS":
+            university_rows = source[
+                (source["university_name"].astype(str).str.strip() == university)
+                & source["tuition"].notna()
+                & source["living"].notna()
+            ]
+            if university_rows.empty:
                 return None
-            rows = related
+            rows = university_rows.sort_values(["program_level", "program_name"], kind="stable").head(1)
             source_program_name = str(rows.iloc[0]["program_name"]).strip()
-            quality = "PUBLISHED_SOURCE_RELATED_PROGRAM"
+            quality = "PUBLISHED_SOURCE_UNIVERSITY_PROXY"
         if rows.empty:
             return None
         row = rows.iloc[0]
@@ -225,13 +235,13 @@ def analyze_financial(payload: dict) -> dict:
             "Agent 4 found no eligible exact university/program rows in the verified source."
         )
     has_model = any(row["cost_data_quality"] == "MODEL_PREDICTED" for row in estimates)
-    has_published = any(row["cost_data_quality"] == "PUBLISHED_SOURCE" for row in estimates)
+    has_published = any(row["cost_data_quality"].startswith("PUBLISHED_SOURCE") for row in estimates)
     notice_parts = []
     if has_model:
         notice_parts.append("Model-predicted rows use agent4_tuition_model.pkl.")
     if has_published:
         notice_parts.append(
-            "Published-source rows are reported directly; related-program matches are labeled in source_program_name."
+            "Published-source rows are reported directly; related-program and university-proxy matches are labeled in source_program_name."
         )
     notice_parts.append("No missing institutional values are inferred.")
     return {

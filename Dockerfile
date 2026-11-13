@@ -13,6 +13,8 @@ COPY requirements.txt ./
 RUN python3 -m pip install --no-cache-dir --break-system-packages -r requirements.txt
 
 COPY . .
+RUN python3 -m pip install --no-cache-dir --break-system-packages \
+    -r backend/app/agents/extracurricular_agent/requirements.txt
 RUN python3 -m reflex init \
     && npm install --prefix .web --no-audit --no-fund
 
