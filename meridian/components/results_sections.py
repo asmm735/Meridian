@@ -96,7 +96,6 @@ def live_financial():
             lambda row: rx.el.article(
                 rx.el.div(
                     rx.el.span(row["university"], style={"fontWeight": 500}),
-                    rx.el.span(row["cost_data_quality"], class_name="mono ink"),
                     class_name="row between wrap", style={"gap": "8px"},
                 ),
                 rx.el.p(row["program_name"], class_name="body"),
@@ -135,7 +134,7 @@ def live_scholarships():
                 class_name="row between wrap", style={"gap": "12px"},
             ),
             rx.el.p("Potential annual coverage: ", item["potential_annual_coverage"], " ", item["currency"], class_name="num-key"),
-            rx.el.p("Catalog match score: ", item["match_score"], " · Deadline: ", item["deadline"], class_name="mono"),
+            rx.el.p("Profile fit: ", item["match_score"], " · Deadline: ", item["deadline"], class_name="mono"),
             rx.cond(
                 item["source_url"] != "",
                 rx.el.a("Verify with provider →", href=item["source_url"], target="_blank", class_name="nav-link"),

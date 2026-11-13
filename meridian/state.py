@@ -503,8 +503,12 @@ class State(rx.State):
                 value = item.get(key)
                 if isinstance(value, (int, float)):
                     item[key] = f'{float(value) * 100:.0f}%'
-            item['duration'] = item.get('duration') or 'Duration not listed'
-            item['mode'] = item.get('mode') or 'Study format not listed'
+            item['duration'] = item.get('duration') or 'Duration information is unavailable'
+            item['mode'] = item.get('mode') or 'Study format information is unavailable'
+            if str(item['duration']).casefold() in {'not specified', 'not supplied', 'unknown'}:
+                item['duration'] = 'Duration information is unavailable'
+            if str(item['mode']).casefold() in {'not specified', 'not supplied', 'unknown'}:
+                item['mode'] = 'Study format information is unavailable'
             formatted.append(item)
         return formatted
 
@@ -552,7 +556,16 @@ class State(rx.State):
                 'currency': str(item.get('currency', '')),
                 'funding_gap': item.get('funding_gap'),
                 'recommendations': [
-                    {**recommendation, 'eligibility_match': 'Potential match'}
+                    {
+                        **recommendation,
+                        'eligibility_match': 'Potential match',
+                        'deadline': (
+                            'Confirm with provider'
+                            if str(recommendation.get('deadline', '')).casefold()
+                            in {'', 'not specified', 'not supplied', 'unknown', 'nan'}
+                            else recommendation.get('deadline')
+                        ),
+                    }
                     for recommendation in item.get('recommendations', [])
                     if isinstance(recommendation, dict)
                 ],

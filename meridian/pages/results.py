@@ -126,7 +126,7 @@ def original_demo_layout():
 
 def results_page():
     def card(row):
-        return rx.el.article(label(row["country"], "blue"), rx.el.h3(row["name"], class_name="h3"), rx.el.p("Catalog tier: ", row["tier"], class_name="body"), rx.el.p("Catalog GPA: ", row["gpa"], class_name="mono"), rx.cond(row["match_score"] != "Not supplied", rx.el.p("Catalog relevance score: ", row["match_score"], " (not an admission probability)", class_name="mono"), rx.fragment()), class_name="sheet sheet-pad stacked")
+        return rx.el.article(label(row["country"], "blue"), rx.el.h3(row["name"], class_name="h3"), rx.el.p("Selectivity band: ", row["tier"], class_name="body"), rx.el.p("Typical reported GPA: ", row["gpa"], class_name="mono"), rx.cond(row["match_score"] != "Not supplied", rx.el.p("Profile fit: ", row["match_score"], " (not an admission probability)", class_name="mono"), rx.fragment()), class_name="sheet sheet-pad stacked")
     def program_card(row):
         return rx.el.article(
             rx.el.h3(row["program_name"], class_name="h3"),

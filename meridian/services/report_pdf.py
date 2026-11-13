@@ -17,20 +17,16 @@ from reportlab.platypus import BaseDocTemplate, Frame, PageTemplate, Paragraph, 
 from .. import theme as T
 
 
-AGENT_LABELS = {'profile': 'Agent 1 - Profile classification', 'university': 'Agent 2 - University matches',
-                'program': 'Agent 3 - Program rankings', 'financial': 'Agent 4 - Financial estimates',
-                'scholarship': 'Agent 5 - Scholarships', 'career': 'Agent 6 - Career alignment',
-                'extracurricular': 'Agent 7 - Extracurricular strength'}
+AGENT_LABELS = {'profile': 'Profile overview', 'university': 'University matches',
+                'program': 'Program recommendations', 'financial': 'Estimated costs',
+                'scholarship': 'Scholarship opportunities', 'career': 'Career direction',
+                'extracurricular': 'Experience strength'}
 
 
 def result_status(results, key):
-    saved = results.get('_agent_status', {}).get(key, {})
     if key in results:
-        return 'Completed'
-    if saved:
-        return saved.get('status', 'unavailable').capitalize() + ': ' + saved.get('error', 'No saved result.')
-    errors = [e.split(': ', 1)[-1] for e in results.get('_errors', []) if e.startswith(key + ':')]
-    return 'Failed: ' + errors[-1] if errors else 'Unavailable: no saved result; this agent has not completed analysis.'
+        return 'Available'
+    return 'Not available yet'
 
 
 def document_summary(results):
@@ -39,11 +35,10 @@ def document_summary(results):
         return 'No document text was used in this saved analysis. Results use structured profile inputs.'
     lines = []
     for item in evidence:
-        consumers = ', '.join(item.get('consumed_by', []))
-        lines.append(f"{item['name']}: {item['characters']} text characters; " +
-                     (f"processed by {consumers}." if consumers else 'not analysed by an agent. ' + item.get('notice', '')) +
+        lines.append(f"{item['name']}: document text was " +
+                     ('used for relevance checks.' if item.get('consumed_by') else 'not used in the analysis.') +
                      (' Text was limited to the first 50,000 characters.' if item.get('truncated') else ''))
-    return ' '.join(lines) + ' Documents inform text relevance only; grades, budgets and Agent 7 scores come from the saved profile, not inferred document values.'
+    return ' '.join(lines) + ' Documents inform text relevance only; grades, budgets and experience scores come from the saved profile.'
 
 
 def saved_report_sections(results):
@@ -53,49 +48,42 @@ def saved_report_sections(results):
         data = results.get(key, {})
         lines = [result_status(results, key)]
         if data:
-            if data.get('notice'):
-                lines.append(str(data['notice']))
             if key == 'profile':
                 lines.append('Candidate classification: ' + str(data.get('prediction')))
                 if data.get('probability') is not None:
                     lines.append(f"Tier 1 class probability: {data['probability']:.1%}; not admission probability.")
             elif key == 'university':
-                lines.append('Source: ' + str(data.get('source', 'Saved backend matcher')) + '. Catalog tiers and match scores are not admission chances.')
                 rows = data.get('matched_universities', [])
-                lines.extend(f"{r.get('name')} | {r.get('country')} | tier {r.get('tier')} | catalog GPA {r.get('gpa', 'not supplied')} | relevance {r.get('match_score', 'not supplied')}" for r in rows)
+                lines.extend(f"{r.get('name')} | {r.get('country')} | selectivity band {r.get('tier')} | typical reported GPA {r.get('gpa', 'not available')} | profile fit {r.get('match_score', 'not available')}" for r in rows)
                 if not rows:
                     lines.append('Completed with no matching universities.')
             elif key == 'program':
-                lines.append('Fit measures text relevance (0-1); match blends available ranking signals (0-1). Higher means more relevant, not more likely admission.')
+                lines.append('Programs are ranked by profile fit; this is not an admission prediction.')
                 rows = data.get('programs', [])
-                lines.extend(f"{i}. {r.get('university')} | {r.get('program_name')} | fit {r.get('specialization_fit_score')} | match {r.get('match_score')} | {r.get('duration')} | {r.get('mode')}" for i, r in enumerate(rows, 1))
+                lines.extend(f"{i}. {r.get('university')} | {r.get('program_name')} | fit {float(r.get('specialization_fit_score', 0)) * 100:.0f}% | match {float(r.get('match_score', 0)) * 100:.0f}% | {r.get('duration') or 'Duration information is unavailable'} | {r.get('mode') or 'Study format information is unavailable'}" for i, r in enumerate(rows, 1))
                 if not rows:
                     lines.append('Completed with no matching programs.')
                 lines.extend(str(w) for w in data.get('programs_warnings', []))
             elif key == 'financial':
                 for r in data.get('finance', []):
-                    lines.append(f"{r.get('university')} | {r.get('program_name')} | annual tuition {r.get('tuition_annual')} | annual living {r.get('living_cost_annual')} | annual total {r.get('total_cost')} {r.get('currency', 'currency unspecified')}. Source: {r.get('source', 'not supplied')}; quality: {r.get('cost_data_quality', 'not supplied')}.")
+                    lines.append(f"{r.get('university')} | {r.get('program_name')} | annual tuition {r.get('tuition_annual')} | annual living {r.get('living_cost_annual')} | annual total {r.get('total_cost')} {r.get('currency', 'currency unspecified')}.")
                 for r in data.get('finance_skipped', []):
-                    lines.append(f"Cost unavailable: {r.get('university')} | {r.get('program_name')} | {r.get('reason', 'No exact source coverage')}")
+                    lines.append(f"Cost information is unavailable for {r.get('university')} | {r.get('program_name')}.")
             elif key == 'scholarship':
-                lines.append('Retrieval scores are relevance (0-1), not award probabilities. Eligibility and amounts require provider confirmation.')
+                lines.append('Potential awards require confirmation of current eligibility, amount, and deadline with the provider.')
                 for r in data.get('scholarships', []):
                     lines.append(f"{r.get('university')} | {r.get('program_name')} | funding gap {r.get('funding_gap') if r.get('funding_gap') is not None else 'unknown'} {r.get('currency', '')}")
                     for award in r.get('recommendations', []):
-                        lines.append(f"{award.get('scholarship_name')} | potential annual coverage {award.get('potential_annual_coverage')} {award.get('currency')} | match {award.get('match_score')} | deadline {award.get('deadline')} | source {award.get('source_url') or 'not supplied'}")
+                        lines.append(f"{award.get('scholarship_name')} | potential coverage {award.get('potential_annual_coverage')} {award.get('currency')} | profile fit {float(award.get('match_score', 0)) * 100:.0f}% | deadline {award.get('deadline') or 'Confirm with provider'}")
                     for review in r.get('eligibility_review', []):
                         lines.append(f"Provider review: {review.get('scholarship_name')} | {review.get('eligibility_match')} | {', '.join(review.get('reasons', []))}")
             elif key == 'career':
-                lines.append('Alignment is rule-based skill overlap (0-100), not probability of employment.')
+                lines.append('Career paths are suggestions based on profile alignment, not employment guarantees.')
                 for r in data.get('career_paths', []):
                     lines.append(f"{r.get('career_path')} | alignment {r.get('alignment_score')} | skill gaps: {', '.join(r.get('skill_gaps', [])) or 'none identified'}")
                 lines.append(f"Model annual earnings estimate: {data.get('model_estimated_annual_earnings_usd', 'unavailable')} USD; not a salary guarantee.")
             elif key == 'extracurricular':
-                from .agent7 import NOTICE
-                lines.append(f"Strength tier: {data.get('strength_tier')} | strength score {data.get('profile_strength_score')} / 100 | P(Strong): {data.get('P(Strong)')} | archetype cluster {data.get('achievement_archetype')} | research evidence reported: {bool(data.get('has_research_evidence'))}")
-                lines.append(NOTICE)
-            if data.get('data_sources'):
-                lines.append('Data sources: ' + str(data['data_sources']))
+                lines.append(f"Strength tier: {data.get('strength_tier')} | strength score {data.get('profile_strength_score')} / 100 | achievement pattern {data.get('achievement_archetype')} | research evidence reported: {bool(data.get('has_research_evidence'))}")
         sections.append((title, lines))
     return sections
 
@@ -115,13 +103,13 @@ def render_saved_report_pdf(profile, results):
         ('Country', 'match_country'), ('GPA', 'gpa'), ('GPA scale', 'gpa_scale'))))
     add('Analysis summary', 'Heading1')
     add('Saved analysis: ' + str(results.get('_analysed_at', 'date unavailable')))
-    add(f"{sum(key in results for key in AGENT_LABELS)} of 7 agents returned saved results. Missing and failed outputs are identified below.")
+    add(f"{sum(key in results for key in AGENT_LABELS)} of 7 report sections are available. Missing sections are identified below.")
     add(document_summary(results))
     for title, lines in saved_report_sections(results):
         add(title, 'Heading1')
         for line in lines:
             add(line)
-    add('Model classifications and source estimates are not guarantees of admission, funding, employment or salary. Verify costs and eligibility with the institution/provider.')
+    add('These estimates are not guarantees of admission, funding, employment or salary. Verify costs and eligibility with the institution/provider.')
     SimpleDocTemplate(buffer, pagesize=A4, title='Meridian Study Abroad Report', author='Meridian').build(story)
     return buffer.getvalue()
 
@@ -202,7 +190,7 @@ def render_report_pdf(report: dict[str, Any]) -> bytes:
     f = report["financial"]
     el += _section("Cost breakdown", "04")
     if f.get("finance"):
-        el += [P(f.get("notice", "Agent 4 financial estimates."), "body"),
+        el += [P(f.get("notice", "Estimated costs are based on available university and program information."), "body"),
                _table([[H("UNIVERSITY"), H("PROGRAM"), H("TUITION"), H("LIVING"), H("TOTAL")]] +
                       [[P(row["university"]), P(row["program_name"]), P(row["tuition_annual"]),
                         P(row["living_cost_annual"]), P(row["total_cost"])] for row in f["finance"]],
