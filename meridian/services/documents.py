@@ -84,7 +84,7 @@ def analysis_inputs(token, snapshot):
         item = {'slot': slot, 'name': snapshot[slot + '_name'], 'characters': 0,
                 'status': 'unavailable', 'consumed_by': []}
         try:
-            data = _path(account['id'], identifier).read_bytes()
+            data = _read_blob(account['id'], identifier)
             text = extract_text(item['name'], data)
             item['characters'] = min(len(text), ANALYSIS_LIMIT)
             item['truncated'] = len(text) > ANALYSIS_LIMIT
@@ -103,6 +103,18 @@ def _path(account_id, identifier):
     # Neither client filenames nor paths determine the private storage location.
     uuid.UUID(identifier)
     return Path(os.getenv('MERIDIAN_DATA_DIR', '.meridian')) / 'documents' / str(account_id) / identifier
+
+
+def _read_blob(account_id, identifier):
+    with storage.connect() as db:
+        row = storage._execute(
+            db, 'SELECT data FROM document_blobs WHERE user_id=? AND identifier=?',
+            (account_id, identifier),
+        ).fetchone()
+    if row:
+        value = row['data'] if isinstance(row, dict) else row[0]
+        return bytes(value)
+    return _path(account_id, identifier).read_bytes()
 
 
 def store(token, slot, name, data):
@@ -126,6 +138,9 @@ def store(token, slot, name, data):
                          slot+'_size': f'{len(data):,} bytes', slot+'_status': 'Text extracted' if not preview.startswith('No readable text') else 'Text unavailable',
                          slot+'_preview': preview})
             storage._execute(db, "UPDATE users SET documents=?, results='{}' WHERE id=?", (json.dumps(docs), account['id']))
+            storage._execute(db, 'DELETE FROM document_blobs WHERE user_id=? AND identifier=?', (account['id'], identifier))
+            storage._execute(db, 'INSERT INTO document_blobs (user_id, identifier, data) VALUES (?, ?, ?)',
+                            (account['id'], identifier, data))
             db.commit()
         except Exception:
             path.unlink(missing_ok=True)
@@ -141,8 +156,8 @@ def download(token, slot):
     if slot not in SLOTS or not docs.get(slot+'_id'):
         raise ValueError('Document not found.')
     try:
-        return docs[slot+'_name'], _path(account['id'], docs[slot+'_id']).read_bytes()
-    except FileNotFoundError:
+        return docs[slot+'_name'], _read_blob(account['id'], docs[slot+'_id'])
+    except (FileNotFoundError, ValueError):
         raise ValueError('The stored file is missing. Please upload it again.') from None
 
 
@@ -157,6 +172,8 @@ def remove(token, slot):
         identifier = docs.get(slot+'_id')
         docs = {key: value for key, value in docs.items() if not key.startswith(slot+'_')}
         storage._execute(db, "UPDATE users SET documents=?, results='{}' WHERE id=?", (json.dumps(docs), account['id']))
+        if identifier:
+            storage._execute(db, 'DELETE FROM document_blobs WHERE user_id=? AND identifier=?', (account['id'], identifier))
         db.commit()
         if identifier:
             _path(account['id'], identifier).unlink(missing_ok=True)

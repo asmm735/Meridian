@@ -44,6 +44,10 @@ def connect():
             status TEXT NOT NULL, started_at DOUBLE PRECISION NOT NULL, completed_at DOUBLE PRECISION,
             error TEXT, result TEXT
           );
+          CREATE TABLE IF NOT EXISTS document_blobs (
+            user_id BIGINT NOT NULL REFERENCES users(id), identifier TEXT NOT NULL,
+            data BYTEA NOT NULL, PRIMARY KEY (user_id, identifier)
+          );
         ''')
         try:
             yield db
@@ -69,6 +73,10 @@ def connect():
         id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, agent TEXT NOT NULL,
         status TEXT NOT NULL, started_at REAL NOT NULL, completed_at REAL,
         error TEXT, result TEXT
+      );
+      CREATE TABLE IF NOT EXISTS document_blobs (
+        user_id INTEGER NOT NULL, identifier TEXT NOT NULL,
+        data BLOB NOT NULL, PRIMARY KEY (user_id, identifier)
       );
     ''')
     try:
