@@ -2,12 +2,7 @@
 from __future__ import annotations
 
 import math
-import os
 import re
-import subprocess
-import sys
-import json
-import shutil
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -192,33 +187,6 @@ def analyze_scholarships(payload: dict[str, Any]) -> dict[str, Any]:
     top_k = payload.get("top_k", 10)
     if type(top_k) is not int or not 1 <= top_k <= 50:
         raise ValueError("top_k must be an integer from 1 to 50.")
-    if os.getenv("AGENT5_WORKER") != "1" and sys.version_info < (3, 14):
-        candidates = [
-            Path(os.getenv("AGENT5_COMPAT_PYTHON", "")),
-            Path(r"C:\Users\DELL\AppData\Local\Python\pythoncore-3.14-64\python.exe"),
-            Path(shutil.which("python") or ""),
-        ]
-        worker_python = next((candidate for candidate in candidates if candidate.is_file()), None)
-        if worker_python is not None:
-            completed = subprocess.run(
-                [str(worker_python), "-m", "app.agents.scholarship_agent.worker"],
-                input=json.dumps(payload),
-                text=True,
-                capture_output=True,
-                timeout=50,
-                cwd=str(Path(__file__).resolve().parents[4] / "backend"),
-                check=False,
-            )
-            if completed.returncode != 0:
-                raise ScholarshipUnavailable("Agent 5 compatibility worker failed.") from None
-            try:
-                result = json.loads(completed.stdout)
-            except json.JSONDecodeError as exc:
-                raise ScholarshipUnavailable("Agent 5 compatibility worker returned invalid output.") from exc
-            if not isinstance(result, dict):
-                raise ScholarshipUnavailable("Agent 5 compatibility worker returned an invalid result.")
-            return result
-
     catalog, vectorizer, matrix, config = _load_artifacts()
     profile = payload["profile"]
     query = " ".join(_text(profile.get(key)) for key in ("field", "field_of_study", "interests_text", "programs"))

@@ -183,5 +183,4 @@ def results_page():
             ),
             class_name="sheet sheet-pad",
         ),
-        rx.el.details(rx.el.summary("Inspect the actual API response"), rx.el.pre(State.result_json, style={"whiteSpace":"pre-wrap","overflowWrap":"anywhere"}), class_name="sheet sheet-pad"),
         class_name="container", style={"padding":"48px 28px 96px","display":"grid","gap":"28px"}))
