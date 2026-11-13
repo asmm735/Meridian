@@ -38,6 +38,11 @@ def journey_nav(active: int):
         for i, s in enumerate(STEPS)
     ]
     return rx.el.header(
-        rx.el.div(brand(), rx.el.div(*steps, class_name="stepper"), class_name="container nav-inner"),
+        rx.el.div(
+            brand(),
+            rx.el.div(*steps, class_name="stepper"),
+            rx.el.button("Log out", on_click=State.logout, type="button", class_name="btn-ghost nav-logout"),
+            class_name="container nav-inner",
+        ),
         class_name="nav",
     )

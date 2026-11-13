@@ -119,14 +119,15 @@ button{font-family:inherit}
 
 /* ── Navbar ── */
 .nav{position:sticky;top:0;z-index:60;background:rgba(246,242,234,.94);border-bottom:1px solid var(--rule)}
-.nav-inner{display:flex;align-items:center;justify-content:space-between;height:74px;gap:24px}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:74px;gap:24px;min-width:0}
 .nav-links{display:flex;gap:34px}
 .nav-link{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--ink);position:relative;padding:6px 0}
 .nav-link::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1.5px;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .3s cubic-bezier(.2,.7,.2,1)}
 .nav-link:hover{text-decoration:none}.nav-link:hover::after{transform:scaleX(1)}
 .brand{display:flex;align-items:center;gap:12px;color:var(--ink);text-decoration:none}
 .brand:hover{text-decoration:none}
-.stepper{display:flex;gap:6px;align-items:center}
+.stepper{display:flex;gap:6px;align-items:center;min-width:0;overflow-x:auto;scrollbar-width:none}
+.stepper::-webkit-scrollbar{display:none}
 .step{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--slate);padding:6px 10px;border:0;border-bottom:2px solid transparent;background:transparent;cursor:pointer}
 .step.done{color:var(--ink)}
 .step.active{color:var(--accent-deep);border-bottom-color:var(--accent);font-weight:600}
@@ -389,6 +390,8 @@ html.motion-off.js .reveal,html.motion-off.js .reveal .bar>i,html.motion-off.js 
 #motion-toggle:hover{border-color:var(--accent);color:var(--accent-deep)}
 #motion-toggle.attn{border-color:var(--accent-deep);background:var(--accent-soft);color:var(--accent-deep);font-weight:600}
 #debug-panel{position:fixed;left:18px;top:84px;z-index:400;background:var(--ink);color:var(--ivory);font:11px/1.6 var(--mono);padding:12px 14px;border-radius:3px;max-width:360px;white-space:pre-wrap}
+@media (max-width:980px){.nav-inner{height:auto;min-height:74px;flex-wrap:wrap;padding-top:12px;padding-bottom:12px}.stepper{order:3;flex:1 1 100%;width:100%;padding-bottom:2px}.nav-logout{margin-left:auto;white-space:nowrap}}
+@media (max-width:600px){#motion-toggle{right:12px;bottom:12px;max-width:calc(100vw - 24px);font-size:9px;padding:8px 10px}.nav-inner{gap:12px}.nav-logout{font-size:10px;padding:8px 10px}}
 """
 
 EARLY_JS = (
