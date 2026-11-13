@@ -172,6 +172,25 @@ def test_bad_api_responses_terminate(monkeypatch, status, body):
     with pytest.raises(ValueError):
         asyncio.run(api.request('/match', {}))
 
+
+def test_transient_api_gateway_failure_is_retried(monkeypatch):
+    responses = iter([
+        httpx.Response(502, json={'detail': 'bad gateway'}),
+        httpx.Response(200, json={'matched_universities': []}),
+    ])
+
+    async def response(*args, **kwargs):
+        return next(responses)
+
+    async def no_wait(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(httpx.AsyncClient, 'post', response)
+    monkeypatch.setattr(api.asyncio, 'sleep', no_wait)
+    result = asyncio.run(api.request('/match', {}))
+    assert result['matched_universities'] == []
+
+
 def test_next_section_not_blocked_by_hidden_error(account):
     state = State(_reflex_internal_init=True)
     state.session = account

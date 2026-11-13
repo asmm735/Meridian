@@ -14,6 +14,8 @@ class AgentUnavailable(ValueError):
 _REQUEST_GATE = asyncio.Lock()
 _LAST_REQUEST_AT = 0.0
 _MIN_REQUEST_INTERVAL = 1.5
+_TRANSIENT_STATUS_CODES = {502, 503, 504}
+_TRANSIENT_RETRIES = 2
 
 
 def number(profile, key, low, high):
@@ -78,10 +80,20 @@ async def request(path, payload):
             if elapsed < _MIN_REQUEST_INTERVAL:
                 await asyncio.sleep(_MIN_REQUEST_INTERVAL - elapsed)
             _LAST_REQUEST_AT = time.monotonic()
-            try:
-                response = await client.post(base+path, json=payload)
-            except (httpx.ConnectError, httpx.ReadTimeout, httpx.RemoteProtocolError):
-                raise ValueError('Analysis API did not respond. Render may still be waking up; please retry.') from None
+            response = None
+            for attempt in range(_TRANSIENT_RETRIES + 1):
+                try:
+                    response = await client.post(base+path, json=payload)
+                except (httpx.ConnectError, httpx.ReadTimeout, httpx.RemoteProtocolError):
+                    if attempt >= _TRANSIENT_RETRIES:
+                        raise ValueError(
+                            'Analysis API did not respond. Render may still be waking up; please retry.'
+                        ) from None
+                    await asyncio.sleep(2 * (attempt + 1))
+                    continue
+                if response.status_code not in _TRANSIENT_STATUS_CODES or attempt >= _TRANSIENT_RETRIES:
+                    break
+                await asyncio.sleep(2 * (attempt + 1))
             if response.status_code >= 400:
                 if response.status_code == 429:
                     raise AgentUnavailable(
@@ -94,7 +106,9 @@ async def request(path, payload):
                     detail = 'Request failed'
                 if response.status_code == 401:
                     detail = 'The analysis service rejected authorization. Check the service configuration.'
-                error = AgentUnavailable if response.status_code in (404, 503) else ValueError
+                if response.status_code in _TRANSIENT_STATUS_CODES:
+                    detail = 'The analysis service is waking up or temporarily unavailable. Please retry in a moment.'
+                error = AgentUnavailable if response.status_code in (404, 503, 504) else ValueError
                 raise error(f'Analysis API ({response.status_code}): {detail}')
         try:
             result = response.json()
