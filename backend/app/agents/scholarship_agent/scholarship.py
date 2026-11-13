@@ -75,17 +75,18 @@ def _load_artifacts() -> tuple[pd.DataFrame, Any, Any, dict[str, Any]]:
         raise ScholarshipUnavailable("Agent 5 scholarship artifacts are unavailable.") from exc
     if not isinstance(catalog, pd.DataFrame):
         raise ScholarshipUnavailable("Agent 5 artifacts have an invalid schema.")
+    retrieval_loaded = False
     if VECTORIZER_PATH.is_file() and MATRIX_PATH.is_file():
         try:
             vectorizer = joblib.load(VECTORIZER_PATH)
             matrix_bundle = joblib.load(MATRIX_PATH)
-        except (OSError, ValueError, EOFError, ImportError, AttributeError) as exc:
-            raise ScholarshipUnavailable("Agent 5 retrieval artifacts are unreadable.") from exc
-        if not isinstance(matrix_bundle, dict):
-            raise ScholarshipUnavailable("Agent 5 retrieval matrix has an invalid schema.")
-        matrix = matrix_bundle.get("matrix")
-        ids = matrix_bundle.get("scholarship_ids")
-    else:
+            if isinstance(matrix_bundle, dict):
+                matrix = matrix_bundle.get("matrix")
+                ids = matrix_bundle.get("scholarship_ids")
+                retrieval_loaded = matrix is not None and ids is not None
+        except (OSError, ValueError, EOFError, ImportError, AttributeError, TypeError):
+            retrieval_loaded = False
+    if not retrieval_loaded:
         text_columns = [column for column in catalog.columns if catalog[column].dtype == "object"]
         corpus = catalog[text_columns].fillna("").astype(str).agg(" ".join, axis=1)
         vectorizer = TfidfVectorizer(ngram_range=(1, 2), min_df=1)
