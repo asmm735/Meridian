@@ -26,9 +26,12 @@ def navbar():
 
 def journey_nav(active: int):
     """Slim navbar for in-journey pages with a progress stepper."""
+    paths = ["/profile", "/documents", "/analysis", "/results", "/report"]
     steps = [
-        rx.el.span(
+        rx.el.button(
             s,
+            on_click=State.navigate_to(paths[i]),
+            type="button",
             class_name="step done" if i < active else ("step active" if i == active else "step hide-sm" if i not in (active - 1, active + 1) else "step"),
         )
         for i, s in enumerate(STEPS)

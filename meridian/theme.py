@@ -127,7 +127,7 @@ button{font-family:inherit}
 .brand{display:flex;align-items:center;gap:12px;color:var(--ink);text-decoration:none}
 .brand:hover{text-decoration:none}
 .stepper{display:flex;gap:6px;align-items:center}
-.step{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--slate);padding:6px 10px;border-bottom:2px solid transparent}
+.step{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--slate);padding:6px 10px;border:0;border-bottom:2px solid transparent;background:transparent;cursor:pointer}
 .step.done{color:var(--ink)}
 .step.active{color:var(--accent-deep);border-bottom-color:var(--accent);font-weight:600}
 
@@ -385,7 +385,7 @@ _BODY += r"""
 @media (min-width:1360px){.section-index{display:flex}}
 @media (max-width:980px){.cover-grid{grid-template-columns:minmax(0,1fr)}.globe-band{opacity:.5;right:-30%}}
 html.motion-off.js .reveal,html.motion-off.js .reveal .bar>i,html.motion-off.js .reveal .stacked-bar>div{opacity:1!important;transform:none!important}
-#motion-toggle{position:fixed;left:auto!important;right:18px;top:18px;bottom:auto;z-index:130;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;padding:9px 13px;background:var(--ivory);color:var(--ink);border:1px solid var(--rule-strong);border-radius:2px;cursor:pointer;box-shadow:var(--shadow-1)}
+#motion-toggle{position:fixed;left:auto!important;right:18px;top:auto;bottom:18px;z-index:130;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;padding:9px 13px;background:var(--ivory);color:var(--ink);border:1px solid var(--rule-strong);border-radius:2px;cursor:pointer;box-shadow:var(--shadow-1)}
 #motion-toggle:hover{border-color:var(--accent);color:var(--accent-deep)}
 #motion-toggle.attn{border-color:var(--accent-deep);background:var(--accent-soft);color:var(--accent-deep);font-weight:600}
 #debug-panel{position:fixed;left:18px;top:84px;z-index:400;background:var(--ink);color:var(--ivory);font:11px/1.6 var(--mono);padding:12px 14px;border-radius:3px;max-width:360px;white-space:pre-wrap}

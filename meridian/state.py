@@ -301,6 +301,15 @@ class State(rx.State):
             self.message = self._error(exc)
 
     @rx.event
+    def navigate_to(self, path: str):
+        try:
+            if self.profile_dirty and self.session == self._loaded_session:
+                self._save_profile()
+            return rx.redirect(path)
+        except Exception as exc:
+            self.message = self._error(exc)
+
+    @rx.event
     def set_tab(self, index: int):
         self.profile_tab = max(0, min(index, len(FORM_SCHEMA)-1))
 
