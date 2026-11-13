@@ -37,13 +37,16 @@ class FinancialUnavailable(RuntimeError):
 
 
 def load_artifacts():
-    if not MODEL_PATH.is_file() or not FEATURES_PATH.is_file():
-        raise FinancialUnavailable("Agent 4 model artifacts are missing.")
+    if not MODEL_PATH.is_file():
+        raise FinancialUnavailable("Agent 4 tuition model artifact is missing.")
     model = joblib.load(MODEL_PATH)
-    columns = joblib.load(FEATURES_PATH)
-    if not hasattr(model, "predict") or not isinstance(columns, list) or not columns:
+    if FEATURES_PATH.is_file():
+        columns = joblib.load(FEATURES_PATH)
+    else:
+        columns = list(getattr(model, "feature_names_in_", []))
+    if not hasattr(model, "predict") or not columns:
         raise FinancialUnavailable("Agent 4 artifacts have an invalid schema.")
-    return model, columns
+    return model, list(columns)
 
 
 def _number(value, name):

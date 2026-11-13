@@ -15,6 +15,7 @@ from typing import Any
 import joblib
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 BASE = Path(__file__).resolve().parent / "trained_models_A5"
@@ -70,22 +71,40 @@ def _field(profile: dict[str, Any]) -> str:
 def _load_artifacts() -> tuple[pd.DataFrame, Any, Any, dict[str, Any]]:
     try:
         catalog = joblib.load(CATALOG_PATH)
-        vectorizer = joblib.load(VECTORIZER_PATH)
-        matrix_bundle = joblib.load(MATRIX_PATH)
-        config = joblib.load(CONFIG_PATH)
     except (OSError, ValueError, EOFError, ImportError, AttributeError) as exc:
         raise ScholarshipUnavailable("Agent 5 scholarship artifacts are unavailable.") from exc
-    if not isinstance(catalog, pd.DataFrame) or not isinstance(matrix_bundle, dict):
+    if not isinstance(catalog, pd.DataFrame):
         raise ScholarshipUnavailable("Agent 5 artifacts have an invalid schema.")
-    matrix = matrix_bundle.get("matrix")
-    ids = matrix_bundle.get("scholarship_ids")
+    if VECTORIZER_PATH.is_file() and MATRIX_PATH.is_file():
+        try:
+            vectorizer = joblib.load(VECTORIZER_PATH)
+            matrix_bundle = joblib.load(MATRIX_PATH)
+        except (OSError, ValueError, EOFError, ImportError, AttributeError) as exc:
+            raise ScholarshipUnavailable("Agent 5 retrieval artifacts are unreadable.") from exc
+        if not isinstance(matrix_bundle, dict):
+            raise ScholarshipUnavailable("Agent 5 retrieval matrix has an invalid schema.")
+        matrix = matrix_bundle.get("matrix")
+        ids = matrix_bundle.get("scholarship_ids")
+    else:
+        text_columns = [column for column in catalog.columns if catalog[column].dtype == "object"]
+        corpus = catalog[text_columns].fillna("").astype(str).agg(" ".join, axis=1)
+        vectorizer = TfidfVectorizer(ngram_range=(1, 2), min_df=1)
+        matrix = vectorizer.fit_transform(corpus)
+        ids = catalog["scholarship_id"].astype(str).tolist() if "scholarship_id" in catalog else list(range(len(catalog)))
     matrix_rows = getattr(matrix, "shape", (None,))[0] if matrix is not None else None
     if matrix is None or ids is None or len(catalog) != len(ids) or matrix_rows != len(catalog):
         raise ScholarshipUnavailable("Agent 5 retrieval artifacts do not match the scholarship catalog.")
     required = {"scholarship_id", "scholarship_name"}
     if not required.issubset(catalog.columns):
         raise ScholarshipUnavailable("Agent 5 catalog is missing required columns.")
-    return catalog, vectorizer, matrix, config if isinstance(config, dict) else {}
+    config = {}
+    if CONFIG_PATH.is_file():
+        try:
+            loaded_config = joblib.load(CONFIG_PATH)
+            config = loaded_config if isinstance(loaded_config, dict) else {}
+        except (OSError, ValueError, EOFError, ImportError, AttributeError):
+            config = {}
+    return catalog, vectorizer, matrix, config
 
 
 def _eligibility(row: dict[str, Any], profile: dict[str, Any], finance: dict[str, Any], today: date) -> tuple[str, list[str]]:
