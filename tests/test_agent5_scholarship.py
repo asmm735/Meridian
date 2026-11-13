@@ -4,7 +4,11 @@ import pytest
 
 sys.path.insert(0, "backend")
 
-from app.agents.scholarship_agent.scholarship import analyze_scholarships
+from app.agents.scholarship_agent.scholarship import (
+    _deadline_policy,
+    _field_matches,
+    analyze_scholarships,
+)
 
 
 FINANCE = [{
@@ -50,3 +54,14 @@ def test_agent5_preserves_explicit_unavailable_eligibility():
     })
     assert result["scholarships"][0]["recommendations"] == []
     assert result["scholarships"][0]["eligibility_review"]
+
+
+def test_agent5_matches_clear_field_family():
+    assert _field_matches("Finance and Business Analytics", {"Business"})
+
+
+def test_agent5_uses_open_status_when_deadline_policy_is_missing():
+    assert _deadline_policy({
+        "application_status": "Open / Upcoming",
+        "deadline_policy": "",
+    }) == "open"

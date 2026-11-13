@@ -64,6 +64,29 @@ def _field(profile: dict[str, Any]) -> str:
     return _text(profile.get("field") or profile.get("field_of_study") or profile.get("target_program"))
 
 
+def _field_matches(actual: str, choices: set[str]) -> bool:
+    actual_tokens = set(re.findall(r"[a-z0-9]+", actual.casefold()))
+    actual_tokens -= {"and", "of", "in", "science", "studies"}
+    for choice in choices:
+        choice_tokens = set(re.findall(r"[a-z0-9]+", choice.casefold()))
+        choice_tokens -= {"and", "of", "in", "science", "studies"}
+        if choice_tokens and (choice_tokens <= actual_tokens or actual_tokens <= choice_tokens):
+            return True
+        if choice_tokens & actual_tokens and "business" in choice_tokens | actual_tokens:
+            return True
+    return False
+
+
+def _deadline_policy(row: dict[str, Any]) -> str:
+    policy = _text(row.get("deadline_policy")).casefold()
+    if policy:
+        return policy
+    status = _text(row.get("application_status")).casefold()
+    if any(term in status for term in ("open", "upcoming", "rolling")):
+        return "open"
+    return ""
+
+
 def _load_artifacts() -> tuple[pd.DataFrame, Any, Any, dict[str, Any]]:
     try:
         catalog = (
@@ -125,7 +148,7 @@ def _eligibility(row: dict[str, Any], profile: dict[str, Any], finance: dict[str
                 return
         elif label == "field":
             actual_field = re.sub(r"[^a-z0-9 ]", "", _field(profile).casefold()).strip()
-            if actual_field and any(actual_field == re.sub(r"[^a-z0-9 ]", "", item).strip() for item in choices):
+            if actual_field and _field_matches(actual_field, choices):
                 return
             unknown.append("field equivalence requires review")
             return
@@ -146,7 +169,7 @@ def _eligibility(row: dict[str, Any], profile: dict[str, Any], finance: dict[str
             failed.append("GPA cutoff")
 
     deadline = _text(row.get("deadline"))
-    policy = _text(row.get("deadline_policy")).casefold()
+    policy = _deadline_policy(row)
     if policy == "fixed":
         try:
             if pd.Timestamp(deadline).date() < today:
