@@ -13,10 +13,10 @@ class AgentUnavailable(ValueError):
 
 _REQUEST_GATE = asyncio.Lock()
 _LAST_REQUEST_AT = 0.0
-_MIN_REQUEST_INTERVAL = 1.5
+_MIN_REQUEST_INTERVAL = 3.0
 _TRANSIENT_STATUS_CODES = {502, 503, 504}
 _TRANSIENT_RETRIES = 2
-_RATE_LIMIT_RETRIES = 2
+_RATE_LIMIT_RETRIES = 5
 
 
 def number(profile, key, low, high):
@@ -95,9 +95,9 @@ async def request(path, payload):
                 if response.status_code == 429 and attempt < _RATE_LIMIT_RETRIES:
                     retry_after = response.headers.get('Retry-After', '')
                     try:
-                        wait_seconds = min(max(float(retry_after), 2.0), 10.0)
+                        wait_seconds = min(max(float(retry_after), 3.0), 30.0)
                     except ValueError:
-                        wait_seconds = 3.0 * (attempt + 1)
+                        wait_seconds = min(5.0 * (attempt + 1), 30.0)
                     await asyncio.sleep(wait_seconds)
                     continue
                 if response.status_code not in _TRANSIENT_STATUS_CODES or attempt >= _TRANSIENT_RETRIES:

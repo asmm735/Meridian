@@ -694,7 +694,7 @@ class State(rx.State):
                 try:
                     if agent == 'profile':
                         payload = api.agent1_payload(profile)
-                        result = await asyncio.wait_for(api.request('/agent1/profile', payload), timeout=50)
+                        result = await asyncio.wait_for(api.request('/agent1/profile', payload), timeout=150)
                         if 'prediction' not in result:
                             raise ValueError('Agent 1 returned an invalid response.')
                     elif agent == 'extracurricular':
@@ -730,7 +730,7 @@ class State(rx.State):
                                         'country': profile['match_country'],
                                         'tier': profile['match_tier'],
                                     }),
-                                    timeout=50,
+                                    timeout=150,
                                 )
                                 result['source'] = 'legacy_match_route'
                                 result['notice'] = str(exc) + ' Using the existing GPA/country/tier catalog matcher; no admission probability.'
@@ -741,7 +741,7 @@ class State(rx.State):
                                     'country': profile['match_country'],
                                     'tier': profile['match_tier'],
                                 }),
-                                timeout=50,
+                                timeout=150,
                             )
                             result['source'] = 'legacy_match_route'
                         if not isinstance(result.get('matched_universities'), list):
@@ -756,7 +756,7 @@ class State(rx.State):
                                 'profile': text_profile,
                                 'matched_universities': matches,
                             }),
-                            timeout=50,
+                            timeout=150,
                         )
                         if not isinstance(result.get('programs'), list):
                             raise ValueError('Program API returned an invalid response.')
@@ -768,7 +768,7 @@ class State(rx.State):
                                 'degree_goal': profile.get('degree_goal', ''),
                                 'programs': programs,
                             }),
-                            timeout=50,
+                            timeout=150,
                         )
                         if not isinstance(result.get('finance'), list):
                             raise ValueError('Financial API returned an invalid response.')
@@ -782,14 +782,14 @@ class State(rx.State):
                                 'profile': profile,
                                 'finance': finance,
                             }),
-                            timeout=50,
+                            timeout=150,
                         )
                         if not isinstance(result.get('scholarships'), list):
                             raise ValueError('Scholarship API returned an invalid response.')
                     else:
                         result = await asyncio.wait_for(
                             api.request('/agent6/career', {'profile': text_profile}),
-                            timeout=50,
+                            timeout=150,
                         )
                         if not isinstance(result.get('career_paths'), list):
                             raise ValueError('Career API returned an invalid response.')
