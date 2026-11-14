@@ -191,6 +191,24 @@ def test_transient_api_gateway_failure_is_retried(monkeypatch):
     assert result['matched_universities'] == []
 
 
+def test_rate_limited_api_request_is_retried(monkeypatch):
+    responses = iter([
+        httpx.Response(429, headers={'Retry-After': '2'}, json={'detail': 'busy'}),
+        httpx.Response(200, json={'matched_universities': []}),
+    ])
+
+    async def response(*args, **kwargs):
+        return next(responses)
+
+    async def no_wait(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(httpx.AsyncClient, 'post', response)
+    monkeypatch.setattr(api.asyncio, 'sleep', no_wait)
+    result = asyncio.run(api.request('/match', {}))
+    assert result['matched_universities'] == []
+
+
 def test_next_section_not_blocked_by_hidden_error(account):
     state = State(_reflex_internal_init=True)
     state.session = account

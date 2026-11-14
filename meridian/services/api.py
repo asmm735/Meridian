@@ -16,6 +16,7 @@ _LAST_REQUEST_AT = 0.0
 _MIN_REQUEST_INTERVAL = 1.5
 _TRANSIENT_STATUS_CODES = {502, 503, 504}
 _TRANSIENT_RETRIES = 2
+_RATE_LIMIT_RETRIES = 2
 
 
 def number(profile, key, low, high):
@@ -81,7 +82,7 @@ async def request(path, payload):
                 await asyncio.sleep(_MIN_REQUEST_INTERVAL - elapsed)
             _LAST_REQUEST_AT = time.monotonic()
             response = None
-            for attempt in range(_TRANSIENT_RETRIES + 1):
+            for attempt in range(max(_TRANSIENT_RETRIES, _RATE_LIMIT_RETRIES) + 1):
                 try:
                     response = await client.post(base+path, json=payload)
                 except (httpx.ConnectError, httpx.ReadTimeout, httpx.RemoteProtocolError):
@@ -91,13 +92,21 @@ async def request(path, payload):
                         ) from None
                     await asyncio.sleep(2 * (attempt + 1))
                     continue
+                if response.status_code == 429 and attempt < _RATE_LIMIT_RETRIES:
+                    retry_after = response.headers.get('Retry-After', '')
+                    try:
+                        wait_seconds = min(max(float(retry_after), 2.0), 10.0)
+                    except ValueError:
+                        wait_seconds = 3.0 * (attempt + 1)
+                    await asyncio.sleep(wait_seconds)
+                    continue
                 if response.status_code not in _TRANSIENT_STATUS_CODES or attempt >= _TRANSIENT_RETRIES:
                     break
                 await asyncio.sleep(2 * (attempt + 1))
             if response.status_code >= 400:
                 if response.status_code == 429:
                     raise AgentUnavailable(
-                        'The analysis service is busy. Please wait 30 seconds before running analysis again.'
+                        'The analysis service is still busy after automatic retries. Please try again in a moment.'
                     )
                 try:
                     body = response.json()
