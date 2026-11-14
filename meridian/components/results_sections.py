@@ -174,7 +174,7 @@ def live_scholarships():
                             rx.el.span(review["scholarship_name"], style={"fontWeight": 500}),
                             rx.el.span(" · ", class_name="mono"),
                             rx.el.span(review["eligibility_match"], class_name="mono blue"),
-                            rx.el.p(review["reasons"].to_string(), class_name="body", style={"fontSize": "13px", "marginTop": "4px"}),
+                            rx.el.p(review["reasons"], class_name="body", style={"fontSize": "13px", "marginTop": "4px"}),
                             class_name="kv-row",
                         ),
                     ),

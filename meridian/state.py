@@ -39,7 +39,7 @@ class ScholarshipRecommendation(TypedDict):
 class ScholarshipReview(TypedDict):
     scholarship_name: str
     eligibility_match: str
-    reasons: list[str]
+    reasons: str
 
 
 class ScholarshipResult(TypedDict):
@@ -571,10 +571,10 @@ class State(rx.State):
                     {
                         **review,
                         'eligibility_match': _friendly_match(str(review.get('eligibility_match', ''))),
-                        'reasons': [
+                        'reasons': ', '.join(
                             _friendly_review_reason(str(reason))
                             for reason in review.get('reasons', [])
-                        ],
+                        ),
                     }
                     for review in item.get('eligibility_review', [])
                     if isinstance(review, dict)
