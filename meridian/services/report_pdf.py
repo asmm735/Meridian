@@ -60,7 +60,14 @@ def saved_report_sections(results):
             elif key == 'program':
                 lines.append('Programs are ranked by profile fit; this is not an admission prediction.')
                 rows = data.get('programs', [])
-                lines.extend(f"{i}. {r.get('university')} | {r.get('program_name')} | fit {float(r.get('specialization_fit_score', 0)) * 100:.0f}% | match {float(r.get('match_score', 0)) * 100:.0f}% | {r.get('duration') or 'Duration information is unavailable'} | {r.get('mode') or 'Study format information is unavailable'}" for i, r in enumerate(rows, 1))
+                lines.extend(
+                    f"{i}. {r.get('university')} | {r.get('program_name')} | "
+                    f"fit {float(r.get('specialization_fit_score', 0)) * 100:.0f}% | "
+                    f"match {float(r.get('match_score', 0)) * 100:.0f}%"
+                    + (f" | duration {r['duration']}" if r.get('duration') and str(r['duration']).casefold() not in {'not specified', 'not supplied', 'unknown'} else '')
+                    + (f" | study format {r['mode']}" if r.get('mode') and str(r['mode']).casefold() not in {'not specified', 'not supplied', 'unknown'} else '')
+                    for i, r in enumerate(rows, 1)
+                )
                 if not rows:
                     lines.append('Completed with no matching programs.')
                 lines.extend(str(w) for w in data.get('programs_warnings', []))

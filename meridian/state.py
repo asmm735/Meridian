@@ -503,12 +503,10 @@ class State(rx.State):
                 value = item.get(key)
                 if isinstance(value, (int, float)):
                     item[key] = f'{float(value) * 100:.0f}%'
-            item['duration'] = item.get('duration') or 'Duration information is unavailable'
-            item['mode'] = item.get('mode') or 'Study format information is unavailable'
-            if str(item['duration']).casefold() in {'not specified', 'not supplied', 'unknown'}:
-                item['duration'] = 'Duration information is unavailable'
-            if str(item['mode']).casefold() in {'not specified', 'not supplied', 'unknown'}:
-                item['mode'] = 'Study format information is unavailable'
+            duration = str(item.get('duration') or '').strip()
+            mode = str(item.get('mode') or '').strip()
+            item['duration'] = '' if duration.casefold() in {'not specified', 'not supplied', 'unknown'} else duration
+            item['mode'] = '' if mode.casefold() in {'not specified', 'not supplied', 'unknown'} else mode
             formatted.append(item)
         return formatted
 
@@ -601,7 +599,17 @@ class State(rx.State):
     @rx.var
     def career_paths(self) -> list[dict[str, Any]]:
         result = self.results.get('career', {})
-        return result.get('career_paths', []) if isinstance(result, dict) else []
+        rows = result.get('career_paths', []) if isinstance(result, dict) else []
+        return [
+            {
+                **row,
+                'skill_gaps': ', '.join(str(skill) for skill in row.get('skill_gaps', []))
+                if isinstance(row, dict) and isinstance(row.get('skill_gaps'), list)
+                else str(row.get('skill_gaps', '')) if isinstance(row, dict) else '',
+            }
+            for row in rows
+            if isinstance(row, dict)
+        ]
 
     @rx.var
     def career_summary(self) -> str:

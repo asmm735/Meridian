@@ -222,7 +222,11 @@ def live_career():
                 rx.el.span(row["alignment_score"], "% aligned", class_name="mono ink"),
                 class_name="row between wrap", style={"gap": "8px", "marginBottom": "8px"},
             ),
-            rx.el.p("Skills to build: ", row["skill_gaps"].to_string(), class_name="body"),
+            rx.cond(
+                row["skill_gaps"] != "",
+                rx.el.p("Skills to build: ", row["skill_gaps"], class_name="body"),
+                rx.fragment(),
+            ),
             class_name="sheet sheet-pad stacked", style={"marginTop": "14px"},
         )),
         rx.el.p(

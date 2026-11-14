@@ -131,11 +131,14 @@ def results_page():
         return rx.el.article(
             rx.el.h3(row["program_name"], class_name="h3"),
             rx.el.p(row["university"], class_name="body"),
-            rx.el.p(
-                "Specialization relevance: ", row["specialization_fit_score"],
-                " · Match score: ", row["match_score"],
-                " · ", row["duration"], " · ", row["mode"],
-                class_name="mono", style={"marginTop": "8px"},
+            rx.el.div(
+                rx.el.p(
+                    "Specialization relevance: ", row["specialization_fit_score"],
+                    " · Match score: ", row["match_score"],
+                    class_name="mono", style={"marginTop": "8px"},
+                ),
+                rx.cond(row["duration"] != "", rx.el.p("Duration: ", row["duration"], class_name="mono"), rx.fragment()),
+                rx.cond(row["mode"] != "", rx.el.p("Study format: ", row["mode"], class_name="mono"), rx.fragment()),
             ),
             class_name="sheet sheet-pad stacked",
         )
